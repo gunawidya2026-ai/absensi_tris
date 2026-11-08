@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Absensi Murid</title>
+    <!-- Tailwind CSS untuk Desain yang Rapi dan Responsif -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+    <!-- Header / Navigasi -->
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-user"></i> Aplikasi Absensi Murid
+            </h1>
+            <div class="flex items-center gap-2">
+                <button onclick="resetSemuaData()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-rotate-right"></i> Reset Sistem
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Kolom Kiri: Manajemen Kelas & Murid -->
+        <div class="space-y-6">
+            <!-- Form Tambah Kelas -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-school text-blue-500"></i> Tambah Kelas Baru
+                </h2>
+                <form id="formTambahKelas" onsubmit="tambahKelas(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Nama Kelas</label>
+                        <input type="text" id="namaKelasInput" placeholder="Contoh: XII IPA 1" required
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition">
+                        Buat Kelas
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daftar Kelas & Pilih Kelas -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list text-blue-500"></i> Daftar Kelas
+                </h2>
+                <div id="daftarKelasContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Data kelas akan dirender secara dinamis di sini -->
+                    <p class="text-sm text-gray-400 italic text-center py-4">Belum ada kelas. Silakan buat kelas terlebih dahulu.</p>
+                </div>
+            </div>
+
+            <!-- Form Tambah Murid (Aktif jika kelas dipilih) -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100" id="sectionTambahMurid" style="display:none;">
+                <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-blue-500"></i> Tambah Murid ke <span id="labelKelasAktif" class="text-blue-600"></span>
+                </h2>
+                <form id="formTambahMurid" onsubmit="tambahMurid(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap Murid</label>
+                        <input type="text" id="namaMuridInput" placeholder="Contoh: Budi Santoso" required
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium transition">
+                        Tambah Murid
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Tabel Absensi & Aksi -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800" id="judulTabelAbsensi">Pilih Kelas Terlebih Dahulu</h2>
+                        <p class="text-sm text-gray-500" id="subjudulTabelAbsensi">Tanggal Hari Ini: <span id="tanggalHariIni"></span></p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="unduhDataCSV()" id="btnUnduh" style="display:none;" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-download"></i> Unduh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabel Data Murid & Absensi -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 uppercase text-xs tracking-wider">
+                                <th class="p-3 border-b">No</th>
+                                <th class="p-3 border-b">Nama Murid</th>
+                                <th class="p-3 border-b">Status Kehadiran</th>
+                                <th class="p-3 border-b text-center">Aksi (Edit/Hapus Murid)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelMuridBody">
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-gray-400 italic">
+                                    Silakan pilih salah satu kelas di sebelah kiri untuk mulai mengisi absensi.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Edit Nama Murid -->
+    <div id="modalEditMurid" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style="display:none;">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Nama Murid</h3>
+            <form onsubmit="simpanEditMurid(event)" class="space-y-4">
+                <input type="hidden" id="editMuridId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Nama Baru</label>
+                    <input type="text" id="editMuridInput" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="tutupModalEdit()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logika Aplikasi -->
+    <script>
+        // Inisialisasi Tanggal Hari Ini
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('tanggalHariIni').innerText = new Date().toLocaleDateString('id-ID', options);
+
+        // Struktur Data Utama (Menggunakan localStorage agar permanen & terupdate)
+        let dataAbsensi = JSON.parse(localStorage.getItem('dataAbsensiGuru')) || {
+            kelas: [] // Struktur: [{ id, nama, murid: [{ id, nama, status }] }]
+        };
+
+        let kelasAktifId = null;
+
+        function simpanKeStorage() {
+            localStorage.setItem('dataAbsensiGuru', JSON.stringify(dataAbsensi));
+        }
+
+        function renderKelas() {
+            const container = document.getElementById('daftarKelasContainer');
+            container.innerHTML = '';
+
+            if (dataAbsensi.kelas.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-4">Belum ada kelas. Silakan buat kelas terlebih dahulu.</p>`;
+                document.getElementById('sectionTambahMurid').style.display = 'none';
+                document.getElementById('tabelMuridBody').innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Silakan buat dan pilih kelas terlebih dahulu.</td></tr>`;
+                document.getElementById('judulTabelAbsensi').innerText = "Pilih Kelas Terlebih Dahulu";
+                document.getElementById('btnUnduh').style.display = 'none';
+                return;
+            }
+
+            dataAbsensi.kelas.forEach(kelas => {
+                const isActive = kelas.id === kelasAktifId;
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-blue-50 border-blue-300 font-semibold text-blue-700' : 'bg-white hover:bg-gray-50 border-gray-200'}`;
+                div.innerHTML = `
+                    <span onclick="pilihKelas('${kelas.id}')" class="flex-1 truncate">${kelas.nama} (${kelas.murid.length} Murid)</span>
+                    <div class="flex items-center gap-1">
+                        <button onclick="pilihKelas('${kelas.id}')" class="p-1.5 text-blue-600 hover:bg-blue-100 rounded" title="Pilih Kelas"><i class="fa-solid fa-arrow-right"></i></button>
+                        <button onclick="hapusKelas('${kelas.id}')" class="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Hapus Kelas"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function tambahKelas(e) {
+            e.preventDefault();
+            const input = document.getElementById('namaKelasInput');
+            const nama = input.value.trim();
+            if (!nama) return;
+
+            const kelasBaru = {
+                id: 'K-' + Date.now(),
+                nama: nama,
+                murid: []
+            };
+
+            dataAbsensi.kelas.push(kelasBaru);
+            simpanKeStorage();
+            input.value = '';
+            
+            // Otomatis pilih kelas yang baru dibuat
+            pilihKelas(kelasBaru.id);
+            renderKelas();
+        }
+
+        function hapusKelas(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus kelas ini beserta seluruh data murid di dalamnya?")) {
+                dataAbsensi.kelas = dataAbsensi.kelas.filter(k => k.id !== id);
+                if (kelasAktifId === id) {
+                    kelasAktifId = null;
+                }
+                simpanKeStorage();
+                renderKelas();
+            }
+        }
+
+        function pilihKelas(id) {
+            kelasAktifId = id;
+            renderKelas();
+            
+            const kelas = dataAbsensi.kelas.find(k => k.id === id);
+            if (kelas) {
+                document.getElementById('sectionTambahMurid').style.display = 'block';
+                document.getElementById('labelKelasAktif').innerText = kelas.nama;
+                document.getElementById('judulTabelAbsensi').innerText = `Absensi Kelas: ${kelas.nama}`;
+                document.getElementById('btnUnduh').style.display = 'flex';
+                renderMurid();
+            }
+        }
+
+        function tambahMurid(e) {
+            e.preventDefault();
+            const input = document.getElementById('namaMuridInput');
+            const nama = input.value.trim();
+            if (!nama || !kelasAktifId) return;
+
+            const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+            if (kelas) {
+                kelas.murid.push({
+                    id: 'M-' + Date.now(),
+                    nama: nama,
+                    status: 'Hadir' // Default status Hadir
+                });
+                simpanKeStorage();
+                input.value = '';
+                renderMurid();
+                renderKelas(); // Update counter jumlah murid
+            }
+        }
+
+        function renderMurid() {
+            const tbody = document.getElementById('tabelMuridBody');
+            tbody.innerHTML = '';
+
+            const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+            if (!kelas || kelas.murid.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-400 italic">Belum ada murid di kelas ini. Silakan tambahkan nama murid.</td></tr>`;
+                return;
+            }
+
+            const statusList = ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Dispen', 'Daring'];
+
+            kelas.murid.forEach((murid, index) => {
+                let dropdownOptions = statusList.map(s => `<option value="${s}" ${murid.status === s ? 'selected' : ''}>${s}</option>`).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 text-sm text-gray-600">${index + 1}</td>
+                    <td class="p-3 text-sm font-medium text-gray-800">${murid.nama}</td>
+                    <td class="p-3">
+                        <select onchange="ubahStatusAbsensi('${murid.id}', this.value)" class="px-3 py-1.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            ${dropdownOptions}
+                        </select>
+                    </td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="bukaModalEdit('${murid.id}', '${murid.nama}')" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-medium transition" title="Edit Nama">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
+                        <button onclick="hapusMurid('${murid.id}')" class="px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition" title="Hapus Murid">
+                            <i class="fa-solid fa-trash"></i> Hapus
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function ubahStatusAbsensi(muridId, statusBaru) {
+            const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+            if (kelas) {
+                const murid = kelas.murid.find(m => m.id === muridId);
+                if (murid) {
+                    murid.status = statusBaru;
+                    simpanKeStorage();
+                }
+            }
+        }
+
+        function hapusMurid(muridId) {
+            if (confirm("Apakah Anda yakin ingin menghapus murid ini?")) {
+                const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+                if (kelas) {
+                    kelas.murid = kelas.murid.filter(m => m.id !== muridId);
+                    simpanKeStorage();
+                    renderMurid();
+                    renderKelas();
+                }
+            }
+        }
+
+        function bukaModalEdit(id, nama) {
+            document.getElementById('editMuridId').value = id;
+            document.getElementById('editMuridInput').value = nama;
+            document.getElementById('modalEditMurid').style.display = 'flex';
+        }
+
+        function tutupModalEdit() {
+            document.getElementById('modalEditMurid').style.display = 'none';
+        }
+
+        function simpanEditMurid(e) {
+            e.preventDefault();
+            const id = document.getElementById('editMuridId').value;
+            const namaBaru = document.getElementById('editMuridInput').value.trim();
+
+            const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+            if (kelas) {
+                const murid = kelas.murid.find(m => m.id === id);
+                if (murid) {
+                    murid.nama = namaBaru;
+                    simpanKeStorage();
+                    renderMurid();
+                    tutupModalEdit();
+                }
+            }
+        }
+
+        function resetSemuaData() {
+            if (confirm("PERHATIAN: Tindakan ini akan menghapus SELURUH data kelas, daftar murid, dan rekap absensi secara permanen. Lanjutkan?")) {
+                localStorage.removeItem('dataAbsensiGuru');
+                dataAbsensi = { kelas: [] };
+                kelasAktifId = null;
+                renderKelas();
+                alert("Sistem berhasil direset ke keadaan kosong.");
+            }
+        }
+
+        function unduhDataCSV() {
+            const kelas = dataAbsensi.kelas.find(k => k.id === kelasAktifId);
+            if (!kelas || kelas.murid.length === 0) {
+                alert("Tidak ada data untuk diunduh.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += `Rekap Absensi Kelas: ${kelas.nama}\r\n`;
+            csvContent += `Tanggal: ${new Date().toLocaleDateString('id-ID')}\r\n\r\n`;
+            csvContent += "No,Nama Murid,Status Kehadiran\r\n";
+
+            kelas.murid.forEach((m, index) => {
+                csvContent += `${index + 1},"${m.nama}",${m.status}\r\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Absensi_${kelas.nama.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Render awal saat halaman dimuat
+        renderKelas();
+    </script>
+</body>
+</html>
